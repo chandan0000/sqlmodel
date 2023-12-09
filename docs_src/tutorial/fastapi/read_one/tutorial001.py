@@ -54,14 +54,13 @@ def create_hero(hero: HeroCreate):
 @app.get("/heroes/", response_model=List[HeroRead])
 def read_heroes():
     with Session(engine) as session:
-        heroes = session.exec(select(Hero)).all()
-        return heroes
+        return session.exec(select(Hero)).all()
 
 
 @app.get("/heroes/{hero_id}", response_model=HeroRead)
 def read_hero(hero_id: int):
     with Session(engine) as session:
-        hero = session.get(Hero, hero_id)
-        if not hero:
+        if hero := session.get(Hero, hero_id):
+            return hero
+        else:
             raise HTTPException(status_code=404, detail="Hero not found")
-        return hero

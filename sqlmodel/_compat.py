@@ -106,8 +106,7 @@ if IS_PYDANTIC_V2:
         return class_dict.get("__annotations__", {})
 
     def is_table_model_class(cls: Type[Any]) -> bool:
-        config = getattr(cls, "model_config", {})
-        if config:
+        if config := getattr(cls, "model_config", {}):
             return config.get("table", False) or False
         return False
 
@@ -160,9 +159,7 @@ if IS_PYDANTIC_V2:
         if not field.is_required():
             if field.default is Undefined:
                 return False
-            if field.annotation is None or field.annotation is NoneType:  # type: ignore[comparison-overlap]
-                return True
-            return False
+            return field.annotation is None or field.annotation is NoneType
         return False
 
     def get_type_from_field(field: Any) -> Any:
@@ -241,9 +238,7 @@ if IS_PYDANTIC_V2:
 
         _extra: Union[Dict[str, Any], None] = None
         if cls.model_config.get("extra") == "allow":
-            _extra = {}
-            for k, v in values.items():
-                _extra[k] = v
+            _extra = dict(values)
         # SQLModel override, do not include everything, only the model fields
         # else:
         #     fields_values.update(values)
@@ -399,8 +394,7 @@ else:
         )
 
     def is_table_model_class(cls: Type[Any]) -> bool:
-        config = getattr(cls, "__config__", None)
-        if config:
+        if config := getattr(cls, "__config__", None):
             return getattr(config, "table", False)
         return False
 
@@ -462,17 +456,11 @@ else:
             )  # | self.__sqlmodel_relationships__.keys()
 
         keys: AbstractSet[str]
-        if exclude_unset:
-            keys = self.__fields_set__.copy()  # noqa
-        else:
-            # Original in Pydantic:
-            # keys = self.__dict__.keys()
-            # Updated to not return SQLAlchemy attributes
-            # Do not include relationships as that would easily lead to infinite
-            # recursion, or traversing the whole database
-            keys = (
-                self.__fields__.keys()  # noqa
-            )  # | self.__sqlmodel_relationships__.keys()
+        keys = (
+            self.__fields_set__.copy()
+            if exclude_unset
+            else (self.__fields__.keys())  # noqa
+        )
         if include is not None:
             keys &= include.keys()
 
@@ -509,13 +497,7 @@ else:
         if update is not None:
             obj = {**obj, **update}
         # End SQLModel support dict
-        if not getattr(cls.__config__, "table", False):  # noqa
-            # If not table, normal Pydantic code
-            m: _TSQLModel = cls.__new__(cls)
-        else:
-            # If table, create the new instance normally to make SQLAlchemy create
-            # the _sa_instance_state attribute
-            m = cls()
+        m = cls.__new__(cls) if not getattr(cls.__config__, "table", False) else cls()
         values, fields_set, validation_error = validate_model(cls, obj)
         if validation_error:
             raise validation_error

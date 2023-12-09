@@ -12,10 +12,10 @@ def test_default_bool() -> None:
     df4: list = Default([])
     df5 = Default(None)
 
-    assert not not dt1
-    assert not not dt2
-    assert not not dt3
-    assert not not dt4
+    assert dt1
+    assert dt2
+    assert dt3
+    assert dt4
     assert not df1
     assert not df2
     assert not df3
@@ -34,11 +34,9 @@ def test_not_equality() -> None:
     value1 = Default("foo")
     value2 = Default("bar")
 
-    assert not (value1 == value2)
+    assert value1 != value2
 
 
 def test_not_equality_other() -> None:
     value1 = Default("foo")
-    value2 = "foo"
-
-    assert not (value1 == value2)
+    assert value1 != "foo"

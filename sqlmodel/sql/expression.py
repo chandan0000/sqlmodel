@@ -608,9 +608,7 @@ def select(  # type: ignore
 
 
 def select(*entities: Any) -> Union[Select, SelectOfScalar]:  # type: ignore
-    if len(entities) == 1:
-        return SelectOfScalar(*entities)
-    return Select(*entities)
+    return SelectOfScalar(*entities) if len(entities) == 1 else Select(*entities)
 
 
 def col(column_expression: _T) -> Mapped[_T]:

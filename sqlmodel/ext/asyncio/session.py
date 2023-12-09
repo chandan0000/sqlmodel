@@ -89,10 +89,9 @@ class AsyncSession(_AsyncSession):
             _parent_execute_state=_parent_execute_state,
             _add_event=_add_event,
         )
-        result_value = await _ensure_sync_result(
+        return await _ensure_sync_result(
             cast(Result[_TSelectParam], result), self.exec
         )
-        return result_value  # type: ignore
 
     @deprecated(
         """
