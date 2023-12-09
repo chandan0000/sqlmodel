@@ -375,14 +375,13 @@ def Relationship(
     sa_relationship_args: Optional[Sequence[Any]] = None,
     sa_relationship_kwargs: Optional[Mapping[str, Any]] = None,
 ) -> Any:
-    relationship_info = RelationshipInfo(
+    return RelationshipInfo(
         back_populates=back_populates,
         link_model=link_model,
         sa_relationship=sa_relationship,
         sa_relationship_args=sa_relationship_args,
         sa_relationship_kwargs=sa_relationship_kwargs,
     )
-    return relationship_info
 
 
 @__dataclass_transform__(kw_only_default=True, field_descriptors=(Field, FieldInfo))
@@ -462,9 +461,7 @@ class SQLModelMetaclass(ModelMetaclass, DeclarativeMeta):
             if config_class_value is not Undefined:
                 return config_class_value
             kwarg_value = kwargs.get(name, Undefined)
-            if kwarg_value is not Undefined:
-                return kwarg_value
-            return Undefined
+            return kwarg_value if kwarg_value is not Undefined else Undefined
 
         config_table = get_config("table")
         if config_table is True:
@@ -496,22 +493,20 @@ class SQLModelMetaclass(ModelMetaclass, DeclarativeMeta):
         return new_cls
 
     # Override SQLAlchemy, allow both SQLAlchemy and plain Pydantic models
-    def __init__(
-        cls, classname: str, bases: Tuple[type, ...], dict_: Dict[str, Any], **kw: Any
-    ) -> None:
+    def __init__(self, classname: str, bases: Tuple[type, ...], dict_: Dict[str, Any], **kw: Any) -> None:
         # Only one of the base classes (or the current one) should be a table model
         # this allows FastAPI cloning a SQLModel for the response_model without
         # trying to create a new SQLAlchemy, for a new table, with the same name, that
         # triggers an error
         base_is_table = any(is_table_model_class(base) for base in bases)
-        if is_table_model_class(cls) and not base_is_table:
-            for rel_name, rel_info in cls.__sqlmodel_relationships__.items():
+        if is_table_model_class(self) and not base_is_table:
+            for rel_name, rel_info in self.__sqlmodel_relationships__.items():
                 if rel_info.sa_relationship:
                     # There's a SQLAlchemy relationship declared, that takes precedence
                     # over anything else, use that and continue with the next attribute
-                    setattr(cls, rel_name, rel_info.sa_relationship)  # Fix #315
+                    setattr(self, rel_name, rel_info.sa_relationship)
                     continue
-                raw_ann = cls.__annotations__[rel_name]
+                raw_ann = self.__annotations__[rel_name]
                 origin = get_origin(raw_ann)
                 if origin is Mapped:
                     ann = raw_ann.__args__[0]
@@ -520,7 +515,7 @@ class SQLModelMetaclass(ModelMetaclass, DeclarativeMeta):
                     # Plain forward references, for models not yet defined, are not
                     # handled well by SQLAlchemy without Mapped, so, wrap the
                     # annotations in Mapped here
-                    cls.__annotations__[rel_name] = Mapped[ann]  # type: ignore[valid-type]
+                    self.__annotations__[rel_name] = Mapped[ann]
                 relationship_to = get_relationship_to(
                     name=rel_name, rel_info=rel_info, annotation=ann
                 )
@@ -542,20 +537,17 @@ class SQLModelMetaclass(ModelMetaclass, DeclarativeMeta):
                 if rel_info.sa_relationship_kwargs:
                     rel_kwargs.update(rel_info.sa_relationship_kwargs)
                 rel_value = relationship(relationship_to, *rel_args, **rel_kwargs)
-                setattr(cls, rel_name, rel_value)  # Fix #315
+                setattr(self, rel_name, rel_value)
             # SQLAlchemy no longer uses dict_
             # Ref: https://github.com/sqlalchemy/sqlalchemy/commit/428ea01f00a9cc7f85e435018565eb6da7af1b77
             # Tag: 1.4.36
-            DeclarativeMeta.__init__(cls, classname, bases, dict_, **kw)
+            DeclarativeMeta.__init__(self, classname, bases, dict_, **kw)
         else:
-            ModelMetaclass.__init__(cls, classname, bases, dict_, **kw)
+            ModelMetaclass.__init__(self, classname, bases, dict_, **kw)
 
 
 def get_sqlalchemy_type(field: Any) -> Any:
-    if IS_PYDANTIC_V2:
-        field_info = field
-    else:
-        field_info = field.field_info
+    field_info = field if IS_PYDANTIC_V2 else field.field_info
     sa_type = getattr(field_info, "sa_type", Undefined)  # noqa: B009
     if sa_type is not Undefined:
         return sa_type
@@ -567,8 +559,7 @@ def get_sqlalchemy_type(field: Any) -> Any:
     if issubclass(type_, Enum):
         return sa_Enum(type_)
     if issubclass(type_, str):
-        max_length = getattr(metadata, "max_length", None)
-        if max_length:
+        if max_length := getattr(metadata, "max_length", None):
             return AutoString(length=max_length)
         return AutoString
     if issubclass(type_, float):
@@ -608,10 +599,7 @@ def get_sqlalchemy_type(field: Any) -> Any:
 
 
 def get_column_from_field(field: Any) -> Column:  # type: ignore
-    if IS_PYDANTIC_V2:
-        field_info = field
-    else:
-        field_info = field.field_info
+    field_info = field if IS_PYDANTIC_V2 else field.field_info
     sa_column = getattr(field_info, "sa_column", Undefined)
     if isinstance(sa_column, Column):
         return sa_column

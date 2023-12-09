@@ -73,9 +73,7 @@ class Session(_Session):
             _parent_execute_state=_parent_execute_state,
             _add_event=_add_event,
         )
-        if isinstance(statement, SelectOfScalar):
-            return results.scalars()
-        return results  # type: ignore
+        return results.scalars() if isinstance(statement, SelectOfScalar) else results
 
     @deprecated(
         """

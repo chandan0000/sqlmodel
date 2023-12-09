@@ -34,7 +34,7 @@ def cov_tmp_path(tmp_path: Path):
 
 
 def coverage_run(*, module: str, cwd: Union[str, Path]) -> subprocess.CompletedProcess:
-    result = subprocess.run(
+    return subprocess.run(
         [
             "coverage",
             "run",
@@ -47,7 +47,6 @@ def coverage_run(*, module: str, cwd: Union[str, Path]) -> subprocess.CompletedP
         capture_output=True,
         encoding="utf-8",
     )
-    return result
 
 
 def get_testing_print_function(

@@ -67,8 +67,7 @@ def generate_readme_content() -> str:
     message = template.render(sponsors=sponsors)
     pre_content = content[frontmatter_end:pre_end]
     post_content = content[post_start:]
-    new_content = pre_content + message + post_content
-    return new_content
+    return pre_content + message + post_content
 
 
 @app.command()

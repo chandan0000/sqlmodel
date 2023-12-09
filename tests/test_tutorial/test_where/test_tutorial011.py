@@ -33,4 +33,4 @@ def test_tutorial(clear_sqlmodel):
         assert call in calls, "This expected item should be in the list"
         # Now that this item was checked, remove it from the list
         calls.pop(calls.index(call))
-    assert len(calls) == 0, "The list should only have the expected items"
+    assert not calls, "The list should only have the expected items"
